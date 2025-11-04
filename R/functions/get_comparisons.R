@@ -436,3 +436,26 @@ get_comparisons = function(dataset, expr, meta) {
 
   return(results)
 }
+# An example of the result 
+# List of 3
+# $ IFNg: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_IFNg_UNS]  # 稀疏矩阵，行是基因，列是 UNS + IFNg 的细胞/样本
+#   ..$ meta:'data.frame': Ncell_IFNg_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","IFNg": ...   # 条件（对照+该 cytokine），水平顺序已设好
+#   .. ..$ idx  : int  ...                              # 用于从 expr 取列的索引
+#   .. ..$ 其他列: 比如 cell_type, replicate, donor, ... #
+#
+# $ TNFa: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_TNFa_UNS]
+#   ..$ meta:'data.frame': Ncell_TNFa_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","TNFa": ...
+#   .. ..$ idx  : int ...
+#   .. ..$ 其他列...
+#
+# $ IL17: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_IL17_UNS]
+#   ..$ meta:'data.frame': Ncell_IL17_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","IL17": ...
+#   .. ..$ idx  : int ...
+#   .. ..$ 其他列...
+

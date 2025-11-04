@@ -25,13 +25,13 @@ source("R/functions/run_DE.R")
 if (!dir.exists(args$output_dir))
   dir.create(args$output_dir, recursive = T)
 dataset = args$input_file %>%
-  basename() %>%
+  basename() %>% # basename will extract filename 
   gsub("\\.rds$", "", .)
 output_filename = paste0(dataset,
                          "-de_test=", args$de_test,
                          "-shuffle_replicates=", args$shuffle_replicates,
                          ".rds")
-output_file = file.path(args$output_dir, output_filename)
+output_file = file.path(args$output_dir, output_filename) # e.g. <dataset>-de_test=<de_test>-shuffle_replicates=<shuffle_replicates>.rds
 
 # read input file and extract matrix/metadata
 sc = readRDS(args$input_file)
@@ -41,6 +41,28 @@ meta = sc@meta.data
 # get all combinations of conditions
 results = list()
 comparisons = get_comparisons(dataset, expr, meta)
+# An example of the comparisons 
+# List of 3
+# $ IFNg: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_IFNg_UNS]  # 稀疏矩阵，行是基因，列是 UNS + IFNg 的细胞/样本
+#   ..$ meta:'data.frame': Ncell_IFNg_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","IFNg": ...   # 条件（对照+该 cytokine），水平顺序已设好
+#   .. ..$ idx  : int  ...                              # 用于从 expr 取列的索引
+#   .. ..$ 其他列: 比如 cell_type, replicate, donor, ... #
+#
+# $ TNFa: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_TNFa_UNS]
+#   ..$ meta:'data.frame': Ncell_TNFa_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","TNFa": ...
+#   .. ..$ idx  : int ...
+#   .. ..$ 其他列...
+#
+# $ IL17: List of 2
+#   ..$ expr: dgCMatrix[1:Ngene, 1:Ncell_IL17_UNS]
+#   ..$ meta:'data.frame': Ncell_IL17_UNS obs. of K vars:
+#   .. ..$ label: Factor w/2 levels "UNS","IL17": ...
+#   .. ..$ idx  : int ...
+#   .. ..$ 其他列...
 for (comparison_idx in seq_along(comparisons)) {
   comparison = comparisons[[comparison_idx]]
   comparison_name = names(comparisons)[comparison_idx]
@@ -58,11 +80,13 @@ for (comparison_idx in seq_along(comparisons)) {
   # check for replicate shuffling
   if (args$shuffle_replicates == "YES") {
     meta0 %<>% 
-      group_by(cell_type, label) %>%
+      group_by(cell_type, label) %>% # Not sure about this step. 
       mutate(replicate = sample(replicate))
   }
   
-  # fix rownames
+  # fix rownames 
+  # 确保元数据的行名和表达矩阵的列名完全匹配。
+  # 在 Seurat 对象中，meta.data 的行名必须和表达矩阵的列名一致（即每个细胞对应一行元数据）。
   meta0 %<>% set_rownames(colnames(expr0))
   
   # reconstruct the Seurat object

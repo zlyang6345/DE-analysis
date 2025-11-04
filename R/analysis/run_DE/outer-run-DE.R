@@ -50,6 +50,7 @@ grid %<>%
   dplyr::select(input_file, everything())
 
 # write the raw array
+# Make sure the directory sh/analysis/run_DE/grids exists, and then save the analysis grid table (grid) as a tab-separated text file named run_DE.raw.txt inside that folder.
 grid_file = "sh/analysis/run_DE/grids/run_DE.raw.txt"
 grid_dir = dirname(grid_file)
 if (!dir.exists(grid_dir))
@@ -77,7 +78,7 @@ if (!overwrite) {
 
 # subset grid, if needed
 if (nrow(grid0) >= 10000) {
-  grid0 %<>% dplyr::slice(1:9900) ## allow for some other running jobs or sh
+  grid0 %<>% dplyr::slice(1:9900) ## allow for some other running jobs or sh, if you had, say, 15,000 planned analyses, this line cuts it to the first 9,900.
 }
 
 # write the grid that still needs to be run

@@ -75,7 +75,7 @@ seurat_DE = function(sc, de_test, params = list()) {
       tryCatch({
         # subset to the right cell type
         Idents(sc) = sc$cell_type
-        sub = sc %>% subset(idents = cell_type)
+        sub = sc %>% subset(idents = cell_type) # 从 Seurat 对象 sc 中，取出 identity（即 cell_type）等于当前循环的 cell_type 的那一批细胞。
         # drop genes that are never expressed, as Seurat does
         keep = rowSums(sub) > 0
         sub = sub[keep, ]
@@ -115,21 +115,21 @@ pseudobulk_DE = function(sc,
     dplyr::count(cell_type, label) %>%
     group_by(cell_type) %>%
     filter(all(n >= 3)) %>%
-    pull(cell_type) %>%
+    pull(cell_type) %>% # 得到一个 keep 向量：要保留的 cell_type 列表。
     unique()
   
   # process data into gene x replicate x cell_type matrices
   Idents(sc) = sc$cell_type
   pseudobulks = keep %>%
     map( ~ {
-      print(.)
+      print(.) # . represents cell type 
       sc_sub = subset(sc, idents = .)
       meta_sub = sc_sub@meta.data %>%
         mutate(label = as.character(label),
                replicate = as.character(replicate))
       # catch cell types without replicates or conditions
       if (n_distinct(meta_sub$label) < 2)
-        return(NA)
+        return(NA) # Only one group 
       if (!is.null(params$replicate)) {
         # optionally, turn off replicate summarization
         if (params$replicate == 'cells') {
@@ -150,8 +150,8 @@ pseudobulk_DE = function(sc,
       
       # process data into gene X replicate X cell_type matrices 
       # https://jef.works/blog/2020/04/06/quickly-creating-pseudobulks/
-      mm = model.matrix(~ 0 + replicate:label, data = meta_sub)
-      mat_mm = GetAssayData(sc_sub, slot = 'counts') %*% mm
+      mm = model.matrix(~ 0 + replicate:label, data = meta_sub) # replicate:label represents interaction term 
+      mat_mm = GetAssayData(sc_sub, slot = 'counts') %*% mm # Create pseudo-bulk 
       keep_genes = rowSums(mat_mm > 0) > 0
       mat_mm = mat_mm[keep_genes, ] %>% as.data.frame()
       mat_mm %<>% as.data.frame()
@@ -160,8 +160,8 @@ pseudobulk_DE = function(sc,
       keep_samples = colSums(mat_mm) > 0
       mat_mm %<>% extract(, keep_samples)
       return(mat_mm)
-    }) %>%
-    setNames(keep)
+    }) %>% setNames(keep)
+  
   # drop NAs
   pseudobulks %<>% extract(!is.na(.))
   
@@ -174,8 +174,8 @@ pseudobulk_DE = function(sc,
     # make sure we have a data frame a not a vector
     tmp = as.data.frame(.)
     targets = data.frame(group_sample = colnames(tmp)) %>%
-      mutate(group = gsub(".*\\:", "", group_sample))
-    if (n_distinct(targets$group) == 1)
+      mutate(group = gsub(".*\\:", "", group_sample))　＃"R1:case" → "case"， "R3:ctrl" → "ctrl"
+    if (n_distinct(targets$group) == 1) # 如果所有 pseudobulk 样本的 group 都一样（比如都属于 case），说明只有一个条件
       return(as.integer(0))
     min(table(targets$group))
   })
@@ -184,13 +184,12 @@ pseudobulk_DE = function(sc,
   # run pseudobulk DE
   if (de_test == 'pseudobulk_limma') {
     library(limma)
-    
     # run limma on each cell type
-    DE = pseudobulks %>%
+    DE = pseudobulks %>% 
       map(function(x) {
         tryCatch({
           # create targets matrix
-          targets = data.frame(group_sample = colnames(x)) %>%
+          targets = data.frame(group_sample = colnames(x)) %>% # pseudobulks是一个list，每个元素是一个表格 genes * pesudobulks  
             mutate(group = gsub(".*\\:", "", group_sample))
           ## optionally, carry over factor levels from entire dataset
           if (is.factor(meta$label)) {
@@ -577,7 +576,7 @@ run_DE = function(sc, de_test, params = list(), ...) {
     time = system.time({
       mem = peakRAM({
         DE = pseudobulk_DE(sc, de_test, params) %>%
-          bind_rows(.id = 'cell_type')
+          bind_rows(.id = 'cell_type') # .id = 'cell_type' 会把原来 list 的名字存到新的一列 cell_type 里，这样你就知道每行是哪个 cell type 的 DE 结果。
       })
     })
     DE %<>% mutate(runtime = time[3], mem_usage = mem[1, 4])
